@@ -98,7 +98,8 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
-extern int sys_first(void);
+extern int sys_save(void);
+extern int sys_load(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -122,7 +123,8 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-[SYS_first]   sys_first ,
+[SYS_save]   sys_save ,
+[SYS_load]   sys_load ,
 };
 
 void
