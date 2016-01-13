@@ -11,7 +11,7 @@
 */
 int main(void)
 {
- printf(1, "first test ... :))\n");
+ printf(1, "first test ...\n");
  exit();
 }
 
