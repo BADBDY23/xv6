@@ -468,9 +468,9 @@ sys_save(){
     }
     struct file *sysFile  = proc->ofile[fd];
     cprintf("%d\n",proc->pid);
-    int size = sizeof(proc);
+    int size = sizeof(struct proc);
 
-    if(filewrite(sysFile, (char*)proc, sizeof(proc))!= size){
+    if(filewrite(sysFile, (char*)proc, sizeof(struct proc))!= size){
         cprintf("error: write to backup file failed\n");
         exit();
     }
@@ -507,7 +507,7 @@ sys_load(void)
 //        cprintf("error: read from backup file failed\n");
 //        exit();
 //    }
-    cprintf("file contents name %d\n",newproc.pid);
+    cprintf("file contents name %s\n",newproc.name);
     cprintf("read ok\n");
     cprintf("size = %d\n",sizeof(sysFile));
     proc->ofile[fd] = 0;
