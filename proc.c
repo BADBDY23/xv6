@@ -185,7 +185,6 @@ exit(void)
       proc->ofile[fd] = 0;
     }
   }
-
   begin_op();
   iput(proc->cwd);
   end_op();

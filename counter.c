@@ -5,7 +5,6 @@
 //#include "stat.h"
 //#include "defs.h"
 #include "fcntl.h"
-//#include "proc.h"
 
 struct test {
     char name;
@@ -68,9 +67,11 @@ void load1()
 
 int main(void)
 {
-    save1();
-    load1();
-
+//    void *shr_ptr;
+    printf(1,"%d\n",getpid());
+    save("backup", O_CREATE | O_RDWR);
+    load("backup", O_RDONLY);
+    exit();
     return 0;
 }
 
