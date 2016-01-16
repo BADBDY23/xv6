@@ -52,7 +52,7 @@ struct context {
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
-struct proc {
+struct proc{
   uint sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
@@ -68,6 +68,10 @@ struct proc {
   char name[16];               // Process name (debugging)
 };
 
+//void continueT(){
+
+
+//}
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss

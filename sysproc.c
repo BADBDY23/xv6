@@ -7,10 +7,11 @@
 #include "mmu.h"
 #include "proc.h"
 #include "types.h"
-//#include "user.h"
 #include "fcntl.h"
 #include "stat.h"
-//#include "file.h"
+
+
+
 
 int
 sys_fork(void)
@@ -96,12 +97,4 @@ sys_uptime(void)
     release(&tickslock);
     return xticks;
 }
-
-
-
-//struct test {
-//    char name;
-//    int number;
-//};
-
 

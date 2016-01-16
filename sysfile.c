@@ -4,6 +4,16 @@
 // user code, and calls into file.c and fs.c.
 //
 
+//#include "types.h"
+//#include "defs.h"
+//#include "param.h"
+//#include "stat.h"
+//#include "mmu.h"
+//#include "proc.h"
+//#include "fs.h"
+//#include "file.h"
+//#include "fcntl.h"
+
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -13,6 +23,8 @@
 #include "fs.h"
 #include "file.h"
 #include "fcntl.h"
+#include "memlayout.h"
+#include "x86.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -281,6 +293,53 @@ create(char *path, short type, short major, short minor)
     return ip;
 }
 
+int openFile(char* path , int omode){
+    int fd;
+    struct file *f;
+    struct inode *ip;
+
+    begin_op();
+
+    if(omode & O_CREATE){
+        ip = create(path, T_FILE, 0, 0);
+        if(ip == 0){
+            end_op();
+            return -1;
+        }
+    } else {
+        if((ip = namei(path)) == 0){
+            end_op();
+            return -1;
+        }
+        ilock(ip);
+        if(ip->type == T_DIR && omode != O_RDONLY){
+            iunlockput(ip);
+            end_op();
+            return -1;
+        }
+    }
+
+    if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+        if(f)
+            fileclose(f);
+        iunlockput(ip);
+        end_op();
+        return -1;
+    }
+    iunlock(ip);
+    end_op();
+
+    f->type = FD_INODE;
+    f->ip = ip;
+    f->off = 0;
+    f->readable = !(omode & O_WRONLY);
+    f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+    return fd;
+
+
+}
+
+
 int
 sys_open(void)
 {
@@ -290,14 +349,12 @@ sys_open(void)
     struct inode *ip;
 
     if(argstr(0, &path) < 0 || argint(1, &omode) < 0){
-        cprintf("shit  = %s\n",path);
         return -1;
     }
 
     begin_op();
 
     if(omode & O_CREATE){
-        cprintf("%s \n",path);
         ip = create(path, T_FILE, 0, 0);
         if(ip == 0){
             end_op();
@@ -445,46 +502,66 @@ sys_pipe(void)
     return 0;
 }
 
-
-struct test {
-    char name;
-    int number;
-};
-
-
 int
 sys_save(){
-    int fd;
-//    struct test t ;
-//    t.name = 's';
-//    t.number = 1;
-//    char *number = "asd";
-    fd = sys_open();
-    if(fd >= 0) {
+    int page_fd, context_fd, tf_fd, proc_fd;
+    proc_fd = openFile("proc" , O_CREATE | O_RDWR);
+    context_fd = openFile("context" , O_CREATE | O_RDWR);
+    tf_fd = openFile("tf" , O_CREATE | O_RDWR);
+    page_fd = openFile("page_fd" , O_CREATE | O_RDWR);
+    if(page_fd >= 0 && proc_fd >= 0 && context_fd >= 0 && tf_fd >= 0) {
         cprintf("ok: create backup file succeed\n");
     } else {
         cprintf("error: create backup file failed\n");
         exit();
     }
-    struct file *sysFile  = proc->ofile[fd];
-    cprintf("%d\n",proc->pid);
-    int size = sizeof(struct proc);
+    struct file *procFile  = proc->ofile[proc_fd];
+    struct file *contextFile  = proc->ofile[context_fd];
+    struct file *tfFile  = proc->ofile[tf_fd];
+    struct file *pageFile  = proc->ofile[page_fd];
 
-    if(filewrite(sysFile, (char*)proc, sizeof(struct proc))!= size){
-        cprintf("error: write to backup file failed\n");
-        exit();
+    pte_t *pte;
+    uint pa, i;
+    int number_of_pages = 0, number_of_user_pages = 0;
+    int result = 0;
+    for(i = 0; i < proc->sz; i += PGSIZE){
+        number_of_pages++;
+        if((pte = my_walkpgdir(proc->pgdir, (void *) i, 0)) == 0)
+            panic("copyuvm: pte should exist");
+        if(!(*pte & PTE_P))
+            panic("copyuvm: page not present");
+        if((*pte & PTE_U))
+            number_of_user_pages++;
+        pa = PTE_ADDR(*pte);
+        //        cprintf("pages %d : %s\n**********************************\n",i,(char*)p2v(pa));
+        result += filewrite(pageFile, (char*)p2v(pa), PGSIZE);
     }
-    cprintf("write ok\n");
-    cprintf("size = %d\n",sizeof(sysFile));
-    proc->ofile[fd] = 0;
-    fileclose(sysFile);
-    //int i ;
-    /*for(i = 0 ; i < 20 ; i++){
-            printf(2,"the value is %d\n",i);
-            if(i == 10){
-                exit();
-            }
-        }*/
+    cprintf("\nsz: %d\ntotoal pages: %d **** user pages: %d\n", proc->sz, number_of_pages, number_of_user_pages);
+
+    /*
+         contex write
+         */
+    filewrite(contextFile, (char *) proc->context, sizeof(struct context));
+
+    /*
+         tf write
+         */
+    filewrite(tfFile, (char *) proc->tf, sizeof(struct trapframe));
+
+    /*
+         proc write
+         */
+    filewrite(procFile, (char *) proc, sizeof(struct proc));
+
+    proc->ofile[proc_fd] = 0;
+    proc->ofile[tf_fd] = 0;
+    proc->ofile[context_fd] = 0;
+    proc->ofile[page_fd] = 0;
+    fileclose(procFile);
+    fileclose(contextFile);
+    fileclose(tfFile);
+    fileclose(pageFile);
+    exit();
     return 0;
 }
 
@@ -492,7 +569,6 @@ int
 sys_load(void)
 {
     int fd;
-
     fd = sys_open();
     if(fd >= 0) {
         cprintf("ok: read backup file succeed\n");
@@ -501,18 +577,12 @@ sys_load(void)
         exit();
     }
     struct file *sysFile  = proc->ofile[fd];
-//    int size = sizeof(struct proc);
     struct proc newproc;
     fileread(sysFile, (char*)&newproc, sizeof(struct proc));
-//        cprintf("error: read from backup file failed\n");
-//        exit();
-//    }
-    cprintf("file contents name %s\n",newproc.name);
     cprintf("read ok\n");
-    cprintf("size = %d\n",sizeof(sysFile));
     proc->ofile[fd] = 0;
     fileclose(sysFile);
-    //    close(fd);
+    continueproc(&newproc);
     return 0;
 }
 

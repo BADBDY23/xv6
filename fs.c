@@ -255,7 +255,7 @@ iget(uint dev, uint inum)
 struct inode*
 idup(struct inode *ip)
 {
-  acquire(&icache.lock);
+    acquire(&icache.lock);
   ip->ref++;
   release(&icache.lock);
   return ip;

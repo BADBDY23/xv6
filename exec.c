@@ -75,7 +75,7 @@ exec(char *path, char **argv)
   ustack[0] = 0xffffffff;  // fake return PC
   ustack[1] = argc;
   ustack[2] = sp - (argc+1)*4;  // argv pointer
-
+  //cprintf("ustack  = %d\n",ustack[1]);
   sp -= (3+argc+1) * 4;
   if(copyout(pgdir, sp, ustack, (3+argc+1)*4) < 0)
     goto bad;
@@ -85,7 +85,6 @@ exec(char *path, char **argv)
     if(*s == '/')
       last = s+1;
   safestrcpy(proc->name, last, sizeof(proc->name));
-
   // Commit to the user image.
   oldpgdir = proc->pgdir;
   proc->pgdir = pgdir;

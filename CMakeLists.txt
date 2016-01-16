@@ -22,6 +22,7 @@ set(SOURCE_FILES
     entryother.S
     exec.c
     fcntl.h
+    first.c
     file.c
     file.h
     forktest.c
@@ -53,6 +54,7 @@ set(SOURCE_FILES
     mp.c
     mp.h
     Notes
+    next.c
     param.h
     picirq.c
     pipe.c
@@ -102,7 +104,6 @@ set(SOURCE_FILES
     wc.c
     x86.h
     zombie.c
-    counter.c
     )
 set(PROJECT_BINARY_DIR /home/mohammad/Documents/finalOsProject/xv6)
 
