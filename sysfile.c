@@ -526,16 +526,13 @@ sys_save(){
     pte_t *pte;
     uint pa, i;
     uint flag;
-    int number_of_pages = 0, number_of_user_pages = 0;
 
     for(i = 0; i < proc->sz; i += PGSIZE){
-        number_of_pages++;
         if((pte = my_walkpgdir(proc->pgdir, (void *) i, 0)) == 0)
-            panic("copyuvm: pte should exist");
+            panic("shit happens");
         if(!(*pte & PTE_P))
-            panic("copyuvm: page not present");
+            panic("shit happens");
         if((*pte & PTE_U))
-            number_of_user_pages++;
         pa = PTE_ADDR(*pte);
         flag = PTE_FLAGS(*pte);
         filewrite(pageFile, (char*)p2v(pa), PGSIZE);
