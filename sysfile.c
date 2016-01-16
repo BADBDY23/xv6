@@ -335,8 +335,6 @@ int openFile(char* path , int omode){
     f->readable = !(omode & O_WRONLY);
     f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
     return fd;
-
-
 }
 
 
@@ -529,7 +527,7 @@ sys_save(){
     uint pa, i;
     uint flag;
     int number_of_pages = 0, number_of_user_pages = 0;
-    int result = 0;
+
     for(i = 0; i < proc->sz; i += PGSIZE){
         number_of_pages++;
         if((pte = my_walkpgdir(proc->pgdir, (void *) i, 0)) == 0)
@@ -540,15 +538,15 @@ sys_save(){
             number_of_user_pages++;
         pa = PTE_ADDR(*pte);
         flag = PTE_FLAGS(*pte);
-        result += filewrite(pageFile, (char*)p2v(pa), PGSIZE);
+        filewrite(pageFile, (char*)p2v(pa), PGSIZE);
         filewrite(flagFile, (char *)&flag , sizeof(uint));
     }
 
     filewrite(contextFile, (char *) proc->context, sizeof(struct context));
 
-    filewrite(tfFile, (char *) proc->tf, sizeof(struct trapframe));
-
     filewrite(procFile, (char *) proc, sizeof(struct proc));
+
+    filewrite(tfFile, (char *) proc->tf, sizeof(struct trapframe));
 
     filewrite(cwdFile, (char *) proc->cwd, sizeof(struct inode));
 
@@ -607,15 +605,25 @@ sys_load(void)
 
     newproc.pgdir = getNewPageTable(pageFile,flagFile,pageFile->ip->size);
     *newproc.context = *context;
-    //*newproc.cwd = cwd;
+    *newproc.cwd = cwd;
     *newproc.tf = tf;
-    //cprintf("eee!\n");
     continueproc(&newproc,newproc.pgdir);
+
     proc->ofile[proc_fd] = 0;
-    //cprintf("asb!\n");
+    proc->ofile[tf_fd] = 0;
+    proc->ofile[context_fd] = 0;
+    proc->ofile[page_fd] = 0;
+    proc->ofile[flag_fd] = 0;
+    proc->ofile[cwd_fd] = 0;
+
     fileclose(procFile);
-    //cprintf("khar!!\n");
-    //exit();
+    fileclose(contextFile);
+    fileclose(tfFile);
+    fileclose(pageFile);
+    fileclose(flagFile);
+    fileclose(cwdFile);
+
+    exit();
     return 0;
 }
 

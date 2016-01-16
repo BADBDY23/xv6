@@ -154,7 +154,7 @@ int continueproc(struct proc *ip , pde_t* pgdir){
     np->context->eip = (uint)forkret;
     np->pgdir = pgdir;
     np->sz = ip->sz;
-    np->parent = ip->parent;
+    np->parent = proc;
     *np->tf = *ip->tf;
     np->tf->eax = 0;
 
