@@ -504,12 +504,14 @@ sys_pipe(void)
 
 int
 sys_save(){
-    int page_fd, context_fd, tf_fd, proc_fd;
+    int page_fd, context_fd, tf_fd, proc_fd , flag_fd;
     proc_fd = openFile("proc" , O_CREATE | O_RDWR);
     context_fd = openFile("context" , O_CREATE | O_RDWR);
     tf_fd = openFile("tf" , O_CREATE | O_RDWR);
-    page_fd = openFile("page_fd" , O_CREATE | O_RDWR);
-    if(page_fd >= 0 && proc_fd >= 0 && context_fd >= 0 && tf_fd >= 0) {
+    page_fd = openFile("page" , O_CREATE | O_RDWR);
+    flag_fd = openFile("flag" , O_CREATE | O_RDWR);
+
+    if(page_fd >= 0 && proc_fd >= 0 && context_fd >= 0 && tf_fd >= 0 && flag_fd >=0 ) {
         cprintf("ok: create backup file succeed\n");
     } else {
         cprintf("error: create backup file failed\n");
@@ -519,9 +521,11 @@ sys_save(){
     struct file *contextFile  = proc->ofile[context_fd];
     struct file *tfFile  = proc->ofile[tf_fd];
     struct file *pageFile  = proc->ofile[page_fd];
+    struct file *flagFile  = proc->ofile[flag_fd];
 
     pte_t *pte;
     uint pa, i;
+    uint flag;
     int number_of_pages = 0, number_of_user_pages = 0;
     int result = 0;
     for(i = 0; i < proc->sz; i += PGSIZE){
@@ -533,34 +537,28 @@ sys_save(){
         if((*pte & PTE_U))
             number_of_user_pages++;
         pa = PTE_ADDR(*pte);
-        //        cprintf("pages %d : %s\n**********************************\n",i,(char*)p2v(pa));
+        flag = PTE_FLAGS(*pte);
         result += filewrite(pageFile, (char*)p2v(pa), PGSIZE);
+        filewrite(flagFile, (char *)&flag , sizeof(uint));
     }
-    cprintf("\nsz: %d\ntotoal pages: %d **** user pages: %d\n", proc->sz, number_of_pages, number_of_user_pages);
 
-    /*
-         contex write
-         */
     filewrite(contextFile, (char *) proc->context, sizeof(struct context));
 
-    /*
-         tf write
-         */
     filewrite(tfFile, (char *) proc->tf, sizeof(struct trapframe));
 
-    /*
-         proc write
-         */
     filewrite(procFile, (char *) proc, sizeof(struct proc));
 
     proc->ofile[proc_fd] = 0;
     proc->ofile[tf_fd] = 0;
     proc->ofile[context_fd] = 0;
     proc->ofile[page_fd] = 0;
+    proc->ofile[flag_fd] = 0;
+
     fileclose(procFile);
     fileclose(contextFile);
     fileclose(tfFile);
     fileclose(pageFile);
+    fileclose(flagFile);
     exit();
     return 0;
 }
@@ -568,21 +566,42 @@ sys_save(){
 int
 sys_load(void)
 {
-    int fd;
-    fd = sys_open();
-    if(fd >= 0) {
-        cprintf("ok: read backup file succeed\n");
+    int page_fd, context_fd, tf_fd, proc_fd , flag_fd;
+    proc_fd = openFile("proc" , O_RDONLY);
+    context_fd = openFile("context" , O_RDONLY);
+    tf_fd = openFile("tf" ,  O_RDONLY);
+    page_fd = openFile("page" ,  O_RDONLY);
+    flag_fd = openFile("flag" ,  O_RDONLY);
+
+    if(page_fd >= 0 && proc_fd >= 0 && context_fd >= 0 && tf_fd >= 0 && flag_fd >= 0) {
+        cprintf("ok: create backup file succeed\n");
     } else {
-        cprintf("error: read backup file failed\n");
+        cprintf("error: create backup file failed\n");
         exit();
     }
-    struct file *sysFile  = proc->ofile[fd];
+    struct file *procFile  = proc->ofile[proc_fd];
+    struct file *contextFile  = proc->ofile[context_fd];
+    struct file *tfFile  = proc->ofile[tf_fd];
+    struct file *pageFile  = proc->ofile[page_fd];
+    struct file *flagFile  = proc->ofile[flag_fd];
+
     struct proc newproc;
-    fileread(sysFile, (char*)&newproc, sizeof(struct proc));
-    cprintf("read ok\n");
-    proc->ofile[fd] = 0;
-    fileclose(sysFile);
-    continueproc(&newproc);
+    fileread(procFile, (char*)&newproc, sizeof(struct proc));
+
+    struct context *context;
+    fileread(contextFile, (char*)&context, sizeof(struct context));
+
+    struct trapframe tf;
+    fileread(tfFile, (char*)&tf, sizeof(struct trapframe));
+
+    newproc.pgdir = getNewPageTable(pageFile,flagFile,pageFile->ip->size);
+    newproc.context = context;
+    newproc.tf = &tf;
+    continueproc(&newproc,newproc.pgdir);
+
+    proc->ofile[proc_fd] = 0;
+    fileclose(procFile);
+    cprintf("khar!!\n");
     return 0;
 }
 

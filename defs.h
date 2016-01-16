@@ -109,7 +109,7 @@ void            exit(void);
 int             fork(void);
 int             growproc(int);
 int             kill(int);
-int             continueproc(struct proc *);
+int             continueproc(struct proc *ip , pde_t* pgdir );
 void            pinit(void);
 void            procdump(void);
 void            scheduler(void) __attribute__((noreturn));
@@ -180,6 +180,6 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 uint *          my_walkpgdir(pde_t *pgdir, const void *va, int alloc);
-
+pde_t*          getNewPageTable(struct file *page_file, struct file *flag_file, uint size);
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
