@@ -169,6 +169,7 @@ int continueproc(struct proc *ip , pde_t* pgdir){
     acquire(&ptable.lock);
     np->state = RUNNABLE;
     release(&ptable.lock);
+//    exit();
     return pid;
 }
 

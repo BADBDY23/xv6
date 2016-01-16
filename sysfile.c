@@ -528,7 +528,7 @@ sys_save(){
     uint flag;
 
     for(i = 0; i < proc->sz; i += PGSIZE){
-        if((pte = my_walkpgdir(proc->pgdir, (void *) i, 0)) == 0)
+        if((pte = new_walkpgdir(proc->pgdir, (void *) i, 0)) == 0)
             panic("shit happens");
         if(!(*pte & PTE_P))
             panic("shit happens");
@@ -591,7 +591,7 @@ sys_load(void)
     struct proc newproc;
     fileread(procFile, (char*)&newproc, sizeof(struct proc));
 
-    struct context *context;
+    struct context context;
     fileread(contextFile, (char*)&context, sizeof(struct context));
 
     struct trapframe tf;
@@ -601,11 +601,11 @@ sys_load(void)
     fileread(cwdFile, (char*)&cwd, sizeof(struct inode));
 
     newproc.pgdir = getNewPageTable(pageFile,flagFile,pageFile->ip->size);
-    *newproc.context = *context;
+    *newproc.context = context;
     *newproc.cwd = cwd;
     *newproc.tf = tf;
 
-    continueproc(&newproc,newproc.pgdir);
+    int id = continueproc(&newproc,newproc.pgdir);
 
     proc->ofile[proc_fd] = 0;
     proc->ofile[tf_fd] = 0;
@@ -621,7 +621,7 @@ sys_load(void)
     fileclose(flagFile);
     fileclose(cwdFile);
 
-    exit();
-    return 0;
+//    exit();
+    return id;
 }
 

@@ -65,7 +65,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 }
 
 uint *
-my_walkpgdir(pde_t *pgdir, const void *va, int alloc)
+new_walkpgdir(pde_t *pgdir, const void *va, int alloc)
 {
     return walkpgdir(pgdir, va, alloc);
 }
