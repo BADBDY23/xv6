@@ -504,14 +504,15 @@ sys_pipe(void)
 
 int
 sys_save(){
-    int page_fd, context_fd, tf_fd, proc_fd , flag_fd;
+    int page_fd, context_fd, tf_fd, proc_fd , flag_fd , cwd_fd;
     proc_fd = openFile("proc" , O_CREATE | O_RDWR);
     context_fd = openFile("context" , O_CREATE | O_RDWR);
     tf_fd = openFile("tf" , O_CREATE | O_RDWR);
     page_fd = openFile("page" , O_CREATE | O_RDWR);
     flag_fd = openFile("flag" , O_CREATE | O_RDWR);
+    cwd_fd = openFile("inode" , O_CREATE | O_RDWR);
 
-    if(page_fd >= 0 && proc_fd >= 0 && context_fd >= 0 && tf_fd >= 0 && flag_fd >=0 ) {
+    if(page_fd >= 0 && proc_fd >= 0 && context_fd >= 0 && tf_fd >= 0 && flag_fd >=0 && cwd_fd >=0) {
         cprintf("ok: create backup file succeed\n");
     } else {
         cprintf("error: create backup file failed\n");
@@ -522,6 +523,7 @@ sys_save(){
     struct file *tfFile  = proc->ofile[tf_fd];
     struct file *pageFile  = proc->ofile[page_fd];
     struct file *flagFile  = proc->ofile[flag_fd];
+    struct file *cwdFile  = proc->ofile[cwd_fd];
 
     pte_t *pte;
     uint pa, i;
@@ -548,17 +550,21 @@ sys_save(){
 
     filewrite(procFile, (char *) proc, sizeof(struct proc));
 
+    filewrite(cwdFile, (char *) proc->cwd, sizeof(struct inode));
+
     proc->ofile[proc_fd] = 0;
     proc->ofile[tf_fd] = 0;
     proc->ofile[context_fd] = 0;
     proc->ofile[page_fd] = 0;
     proc->ofile[flag_fd] = 0;
+    proc->ofile[cwd_fd] = 0;
 
     fileclose(procFile);
     fileclose(contextFile);
     fileclose(tfFile);
     fileclose(pageFile);
     fileclose(flagFile);
+    fileclose(cwdFile);
     exit();
     return 0;
 }
@@ -566,14 +572,15 @@ sys_save(){
 int
 sys_load(void)
 {
-    int page_fd, context_fd, tf_fd, proc_fd , flag_fd;
+    int page_fd, context_fd, tf_fd, proc_fd , flag_fd , cwd_fd;
     proc_fd = openFile("proc" , O_RDONLY);
     context_fd = openFile("context" , O_RDONLY);
     tf_fd = openFile("tf" ,  O_RDONLY);
     page_fd = openFile("page" ,  O_RDONLY);
     flag_fd = openFile("flag" ,  O_RDONLY);
+    cwd_fd = openFile("inode" ,  O_RDONLY);
 
-    if(page_fd >= 0 && proc_fd >= 0 && context_fd >= 0 && tf_fd >= 0 && flag_fd >= 0) {
+    if(page_fd >= 0 && proc_fd >= 0 && context_fd >= 0 && tf_fd >= 0 && flag_fd >= 0 && cwd_fd >=0) {
         cprintf("ok: create backup file succeed\n");
     } else {
         cprintf("error: create backup file failed\n");
@@ -584,6 +591,7 @@ sys_load(void)
     struct file *tfFile  = proc->ofile[tf_fd];
     struct file *pageFile  = proc->ofile[page_fd];
     struct file *flagFile  = proc->ofile[flag_fd];
+    struct file *cwdFile  = proc->ofile[cwd_fd];
 
     struct proc newproc;
     fileread(procFile, (char*)&newproc, sizeof(struct proc));
@@ -594,14 +602,20 @@ sys_load(void)
     struct trapframe tf;
     fileread(tfFile, (char*)&tf, sizeof(struct trapframe));
 
-    newproc.pgdir = getNewPageTable(pageFile,flagFile,pageFile->ip->size);
-    newproc.context = context;
-    newproc.tf = &tf;
-    continueproc(&newproc,newproc.pgdir);
+    struct inode cwd;
+    fileread(cwdFile, (char*)&cwd, sizeof(struct inode));
 
+    newproc.pgdir = getNewPageTable(pageFile,flagFile,pageFile->ip->size);
+    *newproc.context = *context;
+    //*newproc.cwd = cwd;
+    *newproc.tf = tf;
+    //cprintf("eee!\n");
+    continueproc(&newproc,newproc.pgdir);
     proc->ofile[proc_fd] = 0;
+    //cprintf("asb!\n");
     fileclose(procFile);
-    cprintf("khar!!\n");
+    //cprintf("khar!!\n");
+    //exit();
     return 0;
 }
 

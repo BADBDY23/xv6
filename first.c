@@ -7,9 +7,9 @@
 int main(void)
 {
     int i  ;
-    for(i = 0 ; i < 20 ; i++){
+    for(i = 0 ; i < 30 ; i++){
         printf(1,"the number is  = %d\n",i);
-        if(i == 10){
+        if(i == 20){
             save("backup", O_CREATE | O_RDWR);
         }
     }

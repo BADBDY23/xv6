@@ -5,7 +5,8 @@
 #include "fcntl.h"
 
 int main(void){
-    load("backup",O_RDONLY);
+    if(load("backup",O_RDONLY)!=0)
+        wait();
     exit();
     return 0;
 }
