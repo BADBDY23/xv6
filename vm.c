@@ -181,7 +181,7 @@ switchuvm(struct proc *p)
     popcli();
 }
 
-pde_t* getNewPageTable(struct file *page_file, struct file *flag_file, uint size){
+pde_t* getNewPageTable(struct file *pageFile, struct file *flagFile, uint size){
     pde_t *d;
     uint i, flags;
     char *mem;
@@ -192,8 +192,8 @@ pde_t* getNewPageTable(struct file *page_file, struct file *flag_file, uint size
     {
         if ((mem = kalloc()) == 0)
             goto bad;
-        fileread(page_file, mem, PGSIZE);
-        fileread(flag_file, (char *) &flags, sizeof(uint));
+        fileread(pageFile, mem, PGSIZE);
+        fileread(flagFile, (char *) &flags, sizeof(uint));
         if (mappages(d, (void *) i, PGSIZE, v2p(mem), flags) < 0)
             goto bad;
     }

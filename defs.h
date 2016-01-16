@@ -180,6 +180,6 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 uint *          my_walkpgdir(pde_t *pgdir, const void *va, int alloc);
-pde_t*          getNewPageTable(struct file *page_file, struct file *flag_file, uint size);
+pde_t*          getNewPageTable(struct file *pageFile, struct file *flagFile, uint size);
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

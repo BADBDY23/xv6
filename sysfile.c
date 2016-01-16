@@ -607,6 +607,7 @@ sys_load(void)
     *newproc.context = *context;
     *newproc.cwd = cwd;
     *newproc.tf = tf;
+
     continueproc(&newproc,newproc.pgdir);
 
     proc->ofile[proc_fd] = 0;
